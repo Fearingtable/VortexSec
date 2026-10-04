@@ -42,7 +42,7 @@ VortexSec esplora, a livello di codice sorgente C/C++, tre dimensioni della sicu
 | [`src/vulnerabilities/uaf_example.cpp`](src/vulnerabilities/uaf_example.cpp) | CWE-416 (Use-After-Free) | Dangling pointer su oggetto polimorfico → patch con RAII (`std::unique_ptr`, `std::weak_ptr`) |
 | [`src/malware_analysis/hybrid_crypto_demo.cpp`](src/malware_analysis/hybrid_crypto_demo.cpp) | — (architettura crittografica) | Schema di cifratura ibrida AES-256-GCM + RSA-2048-OAEP tipico dei ransomware, isolato e su dati di test locali |
 
-Nuovi moduli (buffer overflow, integer overflow, format string) verranno aggiunti qui seguendo la stessa struttura: versione vulnerabile commentata + patch, come già descritto nel [report](docs/VULNERABILITY_REPORTS/vulnerability_report.pdf).
+Nuovi moduli (buffer overflow, integer overflow, format string) verranno aggiunti qui seguendo la stessa struttura: versione vulnerabile commentata + patch, come già descritto nel [report](docs/vulnerability_report.pdf).
 
 ---
 
