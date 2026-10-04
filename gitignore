@@ -1,0 +1,24 @@
+# --- Build C/C++ -------------------------------------------------------------
+*.o
+*.obj
+*.out
+*.exe
+build/
+build-asan/
+cmake-build-*/
+
+# --- Editor / IDE --------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+
+# --- Sistema operativo -----------------------------------------------------
+.DS_Store
+Thumbs.db
+
+# --- LaTeX (se in futuro aggiungi i sorgenti .tex dei report) ----------------
+*.aux
+*.log
+*.toc
+*.out
+*.synctex.gz
