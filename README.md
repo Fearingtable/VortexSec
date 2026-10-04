@@ -31,7 +31,7 @@ VortexSec esplora, a livello di codice sorgente C/C++, tre dimensioni della sicu
 2. **Malware internals** — perché certe classi di malware scelgono C/C++, con analisi architetturale (non operativa) delle tecniche usate.
 3. **Defensive hardening** — come neutralizzare strutturalmente queste classi di bug con RAII, smart pointer e strumenti di analisi automatica.
 
-📄 **[Leggi il report completo (PDF)](docs/VULNERABILITY_REPORTS/vulnerability_report.pdf)** — analisi dettagliata di 4 CVE reali (EternalBlue, BlueKeep, CVE-2006-5270, CVE-2019-1579), con causa radice, malware/ransomware associati e contromisure per ciascuna.
+📄 **[Leggi il report completo (PDF)](docs/vulnerability_report.pdf)** — analisi dettagliata di 4 CVE reali (EternalBlue, BlueKeep, CVE-2006-5270, CVE-2019-1579), con causa radice, malware/ransomware associati e contromisure per ciascuna.
 
 ---
 
