@@ -3,10 +3,9 @@
 ### C/C++ Low-Level Vulnerability & Malware Mechanics Analysis Lab
 
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=c%2B%2B&logoColor=white)
-![CMake](https://img.shields.io/badge/build-CMake-064F8C?logo=cmake&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Build](https://img.shields.io/badge/build-passing-brightgreen)
-![ASan](https://img.shields.io/badge/AddressSanitizer-enabled-orange)
+![ASan](https://img.shields.io/badge/AddressSanitizer-ready-orange)
+![Docs](https://img.shields.io/badge/docs-PDF%20report-blue)
 
 ---
 
@@ -32,19 +31,18 @@ VortexSec esplora, a livello di codice sorgente C/C++, tre dimensioni della sicu
 2. **Malware internals** — perché certe classi di malware scelgono C/C++, con analisi architetturale (non operativa) delle tecniche usate.
 3. **Defensive hardening** — come neutralizzare strutturalmente queste classi di bug con RAII, smart pointer e strumenti di analisi automatica.
 
+📄 **[Leggi il report completo (PDF)](docs/VULNERABILITY_REPORTS/vulnerability_report.pdf)** — analisi dettagliata di 4 CVE reali (EternalBlue, BlueKeep, CVE-2006-5270, CVE-2019-1579), con causa radice, malware/ransomware associati e contromisure per ciascuna.
+
 ---
 
-## 🧩 Architecture & Vulnerabilities Covered
+## 🧩 Moduli Disponibili
 
-| Modulo | CWE | Tecnica difensiva dimostrata |
+| Modulo | CWE | Cosa dimostra |
 |---|---|---|
-| Buffer Overflow (stack/heap) | CWE-787 / CWE-121 / CWE-122 | Bound checking, `std::span`, ASan |
-| Use-After-Free | CWE-416 | RAII, `std::unique_ptr` / `std::weak_ptr` |
-| Integer Overflow | CWE-190 | Controlli espliciti, `std::vector` safe API |
-| Format String | CWE-134 | Format string literal fissi, wrapper type-safe |
-| Cifratura ibrida (analisi ransomware) | — | Isolamento del modulo, nessuna persistenza |
+| [`src/vulnerabilities/uaf_example.cpp`](src/vulnerabilities/uaf_example.cpp) | CWE-416 (Use-After-Free) | Dangling pointer su oggetto polimorfico → patch con RAII (`std::unique_ptr`, `std::weak_ptr`) |
+| [`src/malware_analysis/hybrid_crypto_demo.cpp`](src/malware_analysis/hybrid_crypto_demo.cpp) | — (architettura crittografica) | Schema di cifratura ibrida AES-256-GCM + RSA-2048-OAEP tipico dei ransomware, isolato e su dati di test locali |
 
-Dettagli completi in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) e nei singoli report in [`docs/VULNERABILITY_REPORTS/`](docs/VULNERABILITY_REPORTS/).
+Nuovi moduli (buffer overflow, integer overflow, format string) verranno aggiunti qui seguendo la stessa struttura: versione vulnerabile commentata + patch, come già descritto nel [report](docs/VULNERABILITY_REPORTS/vulnerability_report.pdf).
 
 ---
 
@@ -52,64 +50,37 @@ Dettagli completi in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) e nei singol
 
 ```
 VortexSec/
-├── docs/                      # Architettura, threat model, report per vulnerabilità
-├── include/                   # Header pubblici per ciascun modulo
+├── LICENSE
+├── .gitignore
 ├── src/
-│   ├── vulnerabilities/       # Esempi vulnerabili + patch
-│   ├── malware_analysis/      # Moduli teorico-dimostrativi isolati
-│   └── defenses/              # Wrapper sicuri, sanitizzazione input
-├── tests/                     # Unit test (GoogleTest / Catch2)
-└── rules/                     # Regole YARA di rilevamento
+│   ├── vulnerabilities/       # Esempi vulnerabili e relative patch
+│   └── malware_analysis/      # Moduli teorico-dimostrativi isolati
+└── docs/
+    └── VULNERABILITY_REPORTS/
+        └── vulnerability_report.pdf
 ```
 
 ---
 
-## ⚙️ Build Instructions
+## ⚙️ Come Compilare ed Eseguire
 
-### Requisiti
-- CMake ≥ 3.20
-- Compilatore con supporto C++20 (Clang ≥ 14 consigliato per Clang Static Analyzer)
-- OpenSSL 3.x (per il modulo di cifratura)
+Ogni modulo è attualmente un file singolo, autocontenuto e compilabile in isolamento — nessun sistema di build necessario per ora.
 
-### Build standard
+### `uaf_example.cpp`
+Richiede Clang (per AddressSanitizer) e supporto C++20.
 ```bash
-mkdir build && cd build
-cmake ..
-cmake --build .
+clang++ -fsanitize=address -g -std=c++20 src/vulnerabilities/uaf_example.cpp -o uaf_demo
+./uaf_demo
 ```
 
-### Build con AddressSanitizer (consigliata per lo sviluppo)
+### `hybrid_crypto_demo.cpp`
+Richiede OpenSSL 3.x (`libcrypto`).
 ```bash
-mkdir build-asan && cd build-asan
-cmake -DCMAKE_CXX_FLAGS="-fsanitize=address -fno-omit-frame-pointer -g" ..
-cmake --build .
+g++ -std=c++20 src/malware_analysis/hybrid_crypto_demo.cpp -lcrypto -o hybrid_demo
+./hybrid_demo
 ```
 
-### Analisi statica con Clang
-```bash
-scan-build cmake --build build
-```
-
-### Analisi dinamica con Valgrind
-```bash
-valgrind --leak-check=full --show-leak-kinds=all ./build/vortexsec
-```
-
----
-
-## 🔁 How to Reproduce & Mitigation Steps
-
-Ogni modulo in `src/vulnerabilities/` segue questa struttura:
-
-1. **Funzione vulnerabile** — isolata e commentata, compilabile ma mai eseguita di default nel `main()`.
-2. **Trigger controllato** — attivabile solo tramite una macro o un flag esplicito, mai in build di produzione.
-3. **Report in `docs/VULNERABILITY_REPORTS/`** — spiega causa radice, impatto teorico (CVSS), e come riprodurre il crash sotto ASan/Valgrind.
-4. **Patch dimostrativa** — stessa funzionalità riscritta con pattern sicuro (RAII, bound checking, ecc.).
-
-Per riprodurre un singolo caso di studio:
-```bash
-./build/vortexsec --demo uaf      # esegue solo la versione corretta per default
-```
+> Man mano che il numero di moduli cresce, questa sezione verrà sostituita da un `CMakeLists.txt` unico con target separati per ciascun modulo.
 
 ---
 
