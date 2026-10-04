@@ -56,6 +56,7 @@ VortexSec/
 │   ├── vulnerabilities/       # Esempi vulnerabili e relative patch
 │   └── malware_analysis/      # Moduli teorico-dimostrativi isolati
 └── docs/
+    ├── images/                # Screenshot dei test (es. report ASan)
     └── VULNERABILITY_REPORTS/
         └── vulnerability_report.pdf
 ```
@@ -67,11 +68,36 @@ VortexSec/
 Ogni modulo è attualmente un file singolo, autocontenuto e compilabile in isolamento — nessun sistema di build necessario per ora.
 
 ### `uaf_example.cpp`
-Richiede Clang (per AddressSanitizer) e supporto C++20.
+Richiede Clang (per AddressSanitizer) e supporto C++20. Compilare **senza ottimizzazioni** (`-O0`): con `-O2` il compilatore può devirtualizzare la chiamata e l'errore non viene più rilevato.
 ```bash
-clang++ -fsanitize=address -g -std=c++20 src/vulnerabilities/uaf_example.cpp -o uaf_demo
+clang++ -fsanitize=address -g -O0 -std=c++20 src/vulnerabilities/uaf_example.cpp -o uaf_demo
 ./uaf_demo
 ```
+
+> **Windows:** usare la shell **MSYS2 CLANG64** (`pacman -S mingw-w64-clang-x86_64-toolchain`) oppure MSVC (`cl /EHsc /std:c++20 /utf-8 /Zi /fsanitize=address`). L'ambiente UCRT64 non include il runtime di ASan.
+
+#### 🔍 Cosa verifica il test
+
+Il programma esegue tre scenari in sequenza e usa AddressSanitizer per rilevare gli accessi a memoria già liberata.
+
+| Scenario | Tecnica | Esito |
+|---|---|---|
+| `fixed_raii_demo` | `std::unique_ptr` (RAII) | ✅ Nessun errore: la memoria è liberata una sola volta, a fine scope |
+| `fixed_shared_demo` | `std::shared_ptr` + `std::weak_ptr` | ✅ Nessun errore: `lock()` verifica che l'oggetto sia vivo prima dell'uso |
+| `vulnerable_uaf_demo` | `new` / `delete` + dangling pointer | ❌ ASan interrompe il processo con `heap-use-after-free` |
+
+L'esito del terzo scenario è **quello atteso**: il programma termina con codice diverso da zero e stampa il report di ASan, che indica con precisione:
+
+- **Accesso illecito** (`READ of size 8`): la seconda chiamata a `w->render()` (riga 34) legge 8 byte da memoria liberata. Poiché `Widget` non ha membri dati, quegli 8 byte sono il puntatore alla **vtable**, necessario per risolvere la chiamata virtuale.
+- **Rilascio** (`freed by`): il `delete w` alla riga 25.
+- **Allocazione** (`previously allocated by`): il `new Widget()` alla riga 22.
+- **Shadow memory**: il byte `[fd]` (*freed heap region*) segna l'indirizzo a cui il programma ha tentato di accedere.
+
+![Report AddressSanitizer: heap-use-after-free](docs/images/uaf_asan_report.png)
+
+*Output di ASan (MSYS2 CLANG64, Windows 10): riepilogo dell'errore e mappa della shadow memory, con `[fd]` sul byte liberato a cui il programma ha tentato di accedere. I numeri di riga si riferiscono alla versione attuale del file.*
+
+**Perché conta:** senza ASan l'esecuzione stamperebbe probabilmente di nuovo `Widget::render (safe)`, nascondendo il bug. Se l'allocatore riassegnasse quel blocco a dati controllati da un attaccante, il `vptr` letto potrebbe puntare a una vtable fasulla, con possibile dirottamento del flusso di controllo. Le versioni con smart pointer eliminano il problema alla radice.
 
 ### `hybrid_crypto_demo.cpp`
 Richiede OpenSSL 3.x (`libcrypto`).
